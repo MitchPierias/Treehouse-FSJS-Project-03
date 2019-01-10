@@ -8,6 +8,9 @@ const nameField = jQuery('#name');
 const emailField = jQuery('#mail');
 const titleField = jQuery('#title');
 const paymentField = jQuery('#payment');
+const ccNumbElem = jQuery('#cc-num');
+const zipElem = jQuery('#zip');
+const cvvElem = jQuery('#cvv');
 const activityFields = jQuery('fieldset.activities');
 const shirtFields = jQuery('fieldset.shirt');
 const designSelector = jQuery('#design', shirtFields);
@@ -32,6 +35,8 @@ registerForm.ready(event => {
     nameField.focus();
     colorFields.hide();
     activityFields.append(priceElem);
+    activityFields.each((idx, elem) => elem.name = 'activites');
+    paymentField.children().each((idx, elem) => elem.disabled = (elem.value == 'select_method'));
     displayPaymentFieldAtIndex(1);
     // Subscribe event handlers
     nameField.keyup(validate(hasValue('Name is required'), matchPattern(/^[\w\s]+$/gi, 'Name invalid')));
@@ -40,23 +45,35 @@ registerForm.ready(event => {
     designSelector.change(didChangeDesign);
     activityFields.change(didChangeActivity);
     paymentField.change(event => displayPaymentFieldAtIndex(event.target.selectedIndex));
+    ccNumbElem.keyup(event => fields.payment.number = event.target.value);
+    zipElem.keyup(event => fields.payment.zip = event.target.value);
+    cvvElem.keyup(event => fields.payment.cvv = event.target.value);
 });
 
 /**
  * Form submit
  * @desc Handles the forms submit event
+ * @note `validate()` method needs to be rewritten to be callable without an event and used here.
  */
 registerForm.submit(event => {
-
     event.preventDefault();
-
-    
-
-    if (fields.payment.type == 'credit card' && !(fields.payment.number && fields.payment.zip && fields.payment.cvv)) {
-        errors.push('Please complete your payment details');
+    // Validate required fields
+    if (!nameField[0].value) appendError(nameField[0], 'Name is required');
+    if (!emailField[0].value) appendError(emailField[0], 'Email is required');
+    (fields.schedule.length <= 0) ? appendError(activityFields[0], 'Please select at least one activity') : removeError(activityFields.name);
+    // Handle credit card payments
+    if (paymentField[0].selectedIndex === 1) {
+        // A quick solution to validate all credit card field values
+        const creditCardElem = jQuery('#credit-card')[0];
+        const { number, zip, cvv } = fields.payment;
+        creditCardElem.name = 'credit-card';
+        if (number && cvv && zip) removeError(creditCardElem.name);
+        if (!number || number == '' || number.length < 13 || number.length > 16) appendError(creditCardElem, 'Credit card number invalid or missing');
+        if (!zip || zip == '') appendError(creditCardElem, 'Credit card zip required');
+        if (!cvv || cvv == '' || cvv.length !== 3) appendError(creditCardElem, 'Credit card CVV invalid or missing');
     }
-
-    if (errors.length <= 0) alert("Success");
+    // Report form submission
+    if (Object.values(errors).length <= 0) alert("Success");
 });
 
 /***************
@@ -91,11 +108,9 @@ function didChangeActivity(event) {
     priceElem.innerHTML = `Total $${total}`;
     // Validate schedule
     if (fields.schedule.length <= 0) {
-        if (errors['activities']) return;
-        event.target.parentNode.parentNode.name = 'activities';
-        appendError(event.target.parentNode.parentNode, 'Please select an activity');
+        appendError(activityFields[0], 'Please select an activity');
     } else {
-        removeError('activities');
+        removeError(activityFields[0].name);
     }
 }
 
