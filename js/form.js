@@ -1,11 +1,12 @@
 // Constants
-const EMAIL_PATTERN = /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/gi;
+const EMAIL_PATTERN = /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$/gi;
 const JS_PUN_PATTERN = /JS\spuns\sshirt\sonly/gi;
 const JS_LOVE_PATTERN = /I\s(&#9829;|♥)\sJS\sshirt\sonly/gi
 // Elements
 const registerForm = jQuery('form');
 const nameField = jQuery('#name');
 const emailField = jQuery('#mail');
+const roleInput = jQuery('input#role');
 const titleField = jQuery('#title');
 const paymentField = jQuery('#payment');
 const ccNumbElem = jQuery('#cc-num');
@@ -33,6 +34,7 @@ const errors = {};
 registerForm.ready(event => {
     // Configure initial layout
     nameField.focus();
+    roleInput.hide();
     colorFields.hide();
     activityFields.append(priceElem);
     activityFields.each((idx, elem) => elem.name = 'activites');
@@ -69,8 +71,8 @@ registerForm.submit(event => {
         creditCardElem.name = 'credit-card';
         if (number && cvv && zip) removeError(creditCardElem.name);
         if (!number || number == '' || number.length < 13 || number.length > 16) appendError(creditCardElem, 'Credit card number invalid or missing');
-        if (!zip || zip == '') appendError(creditCardElem, 'Credit card zip required');
-        if (!cvv || cvv == '' || cvv.length !== 3) appendError(creditCardElem, 'Credit card CVV invalid or missing');
+        if (!zip || zip == '' || typeof(zip) !== 'number' || zip.length > 5) appendError(creditCardElem, 'Credit card zip required');
+        if (!cvv || cvv == '' || typeof(cvv) !== 'number' || cvv.length !== 3) appendError(creditCardElem, 'Credit card CVV invalid or missing');
     }
     // Report form submission
     if (Object.values(errors).length <= 0) alert("Success");
@@ -107,7 +109,7 @@ function didChangeActivity(event) {
     // Update price display
     priceElem.innerHTML = `Total $${total}`;
     // Validate schedule
-    if (fields.schedule.length <= 0) {
+    if (jQuery('input[type=checkbox]:checked',activityFields).length <= 0) {
         appendError(activityFields[0], 'Please select an activity');
     } else {
         removeError(activityFields[0].name);
@@ -127,6 +129,8 @@ function didChangeDesign(event) {
             const filterPattern = new RegExp((event.target.value == 'js puns') ? JS_PUN_PATTERN : JS_LOVE_PATTERN);
             (filterPattern.test(elem.text)) ? jQuery(elem).show() : jQuery(elem).hide();
         });
+        // Invalidate selected index
+        colorSelector[0].selectedIndex = -1;
         // Show colors
         colorFields.show();
     } else {
@@ -143,13 +147,12 @@ function didChangeDesign(event) {
 function didChangeTitle(event) {
     // Handle the job title selection
     if (event.target.value === 'other') {
-        // Append a role input
-        const roleInput = jQuery('<input id="role" name="user_title" type="text" placeholder="Please specify a role"/>');
-        jQuery(event.target).parent().append(roleInput);
+        // Show the role input
+        roleInput.show();
         roleInput.focus();
     } else {
-        // Remove the role input
-        jQuery('input#role').remove();
+        // Hide the role input
+        roleInput.hide();
     }
 }
 
