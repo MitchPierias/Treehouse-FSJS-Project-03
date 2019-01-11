@@ -62,17 +62,21 @@ registerForm.submit(event => {
     // Validate required fields
     if (!nameField[0].value) appendError(nameField[0], 'Name is required');
     if (!emailField[0].value) appendError(emailField[0], 'Email is required');
-    (fields.schedule.length <= 0) ? appendError(activityFields[0], 'Please select at least one activity') : removeError(activityFields.name);
+    (jQuery('input[type=checkbox]:checked',activityFields).length <= 0) ? appendError(activityFields[0], 'Please select at least one activity') : removeError(activityFields.name);
     // Handle credit card payments
     if (paymentField[0].selectedIndex === 1) {
         // A quick solution to validate all credit card field values
         const creditCardElem = jQuery('#credit-card')[0];
         const { number, zip, cvv } = fields.payment;
         creditCardElem.name = 'credit-card';
-        if (number && cvv && zip) removeError(creditCardElem.name);
-        if (!number || number == '' || number.length < 13 || number.length > 16) appendError(creditCardElem, 'Credit card number invalid or missing');
-        if (!zip || zip == '' || typeof(zip) !== 'number' || zip.length > 5) appendError(creditCardElem, 'Credit card zip required');
-        if (!cvv || cvv == '' || typeof(cvv) !== 'number' || cvv.length !== 3) appendError(creditCardElem, 'Credit card CVV invalid or missing');
+        removeError(creditCardElem.name);
+        if (!number || number == '' || !Number.isSafeInteger(Number(number)) || number.length < 13 || number.length > 16) {
+            appendError(creditCardElem, 'Credit card number invalid or missing');
+        } else if (!zip || zip == '' || !Number.isSafeInteger(Number(zip)) || zip.length > 5) {
+            appendError(creditCardElem, 'Credit card zip required or invalid');
+        } else  if (!cvv || cvv == '' || !Number.isSafeInteger(Number(cvv)) || cvv.length !== 3) {
+            appendError(creditCardElem, 'Credit card CVV invalid or missing');
+        }
     }
     // Report form submission
     if (Object.values(errors).length <= 0) alert("Success");
