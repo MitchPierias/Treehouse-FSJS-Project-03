@@ -65,17 +65,19 @@ registerForm.submit(event => {
     (jQuery('input[type=checkbox]:checked',activityFields).length <= 0) ? appendError(activityFields[0], 'Please select at least one activity') : removeError(activityFields.name);
     // Handle credit card payments
     if (paymentField[0].selectedIndex === 1) {
-        // A quick solution to validate all credit card field values
-        const creditCardElem = jQuery('#credit-card')[0];
-        const { number, zip, cvv } = fields.payment;
+        // Capture credit card and remove error
+        const creditCardElem = jQuery('#credit-card').children().last();
         creditCardElem.name = 'credit-card';
-        removeError(creditCardElem.name);
+        // A quick solution to validate all credit card field values
+        const { number, zip, cvv } = fields.payment;
         if (!number || number == '' || !Number.isSafeInteger(Number(number)) || number.length < 13 || number.length > 16) {
             appendError(creditCardElem, 'Credit card number invalid or missing');
         } else if (!zip || zip == '' || !Number.isSafeInteger(Number(zip)) || zip.length > 5) {
             appendError(creditCardElem, 'Credit card zip required or invalid');
         } else  if (!cvv || cvv == '' || !Number.isSafeInteger(Number(cvv)) || cvv.length !== 3) {
             appendError(creditCardElem, 'Credit card CVV invalid or missing');
+        } else {
+            removeError(creditCardElem.name);
         }
     }
     // Report form submission
@@ -94,11 +96,10 @@ registerForm.submit(event => {
 function didChangeActivity(event) {
     // Extract activity components
     let total = 0;
-    const activityComponents = event.target.nextSibling.data.split(/\s\—\s|\,/gi);
+    let activityComponents = event.target.nextSibling.data.split(/\s\—\s|\,/gi);
+    if (activityComponents.length == 2) activityComponents = [activityComponents[0],'main',activityComponents[1]];
     // Handle user action
-    if (activityComponents.length == 2) {
-        fields.schedule = (event.target.checked) ? ['all'] : [];
-    } else if (event.target.checked) {
+    if (event.target.checked) {
         fields.schedule.push(activityComponents[1]);
     } else {
         fields.schedule.splice(fields.schedule.indexOf(activityComponents[1]));
@@ -106,9 +107,8 @@ function didChangeActivity(event) {
     // Disable invalid activities
     jQuery('input[type=checkbox]',activityFields).each((idx, elem) => {
         const components = elem.nextSibling.data.split(/\s\—\s|\,/gi);
-        if (fields.schedule[0] == 'all' && components.length != 2) elem.checked = false;
         if (elem.checked) total += parseInt(components[components.length-1].replace(/[\s\$]/gi,''));
-        elem.disabled = (!elem.checked && (fields.schedule[0] == 'all' || fields.schedule.indexOf(components[1]) >= 0));
+        elem.disabled = (!elem.checked && (fields.schedule.indexOf(components[1]) >= 0));
     });
     // Update price display
     priceElem.innerHTML = `Total $${total}`;
@@ -168,7 +168,6 @@ function didChangeTitle(event) {
 function displayPaymentFieldAtIndex(index) {
     // Force-ensure selected index is set
     if (paymentField[0].selectedIndex != index) paymentField[0].selectedIndex = index;
-    fields.payment.type = paymentField[0][paymentField[0].selectedIndex].value;
     // Manage payment field visibility
     jQuery(paymentField[0]).parent().children('div').each((idx, elem) => {
         (idx == paymentField[0].selectedIndex-1) ? jQuery(elem).show() : jQuery(elem).hide();
